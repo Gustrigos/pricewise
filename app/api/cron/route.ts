@@ -1,9 +1,10 @@
+import { NextResponse } from "next/server";
+
+import { getLowestPrice, getHighestPrice, getAveragePrice, getEmailNotifType } from "@/lib/utils";
 import { connectToDB } from "@/lib/actions/mongoose"
 import Product from "@/lib/models/product.models";
+import { scrapeAmazonProduct } from "@/lib/scraper";
 import { generateEmailBody, sendEmail } from "@/lib/nodemailer";
-import scrapeAmazonProduct from "@/lib/scraper";
-import { getAveragePrice, getEmailNotifType, getHighestPrice, getLowestPrice } from "@/lib/utils";
-import { NextResponse } from "next/server";
 
 export const maxDuration = 300; // This function can run for a maximum of 300 seconds
 export const dynamic = "force-dynamic";
@@ -19,18 +20,18 @@ export async function GET(request: Request) {
 
     // ======================== 1 SCRAPE LATEST PRODUCT DETAILS & UPDATE DB
     const updatedProducts = await Promise.all(
-        products.map(async (currentProduct) => {
-            // Scrape product
-            const scrapedProduct = await scrapeAmazonProduct(currentProduct.url);
-          
-            if (!scrapedProduct) return;
-          
-            const updatedPriceHistory = [
-              ...currentProduct.priceHistory,
-              {
-                price: scrapedProduct ? scrapedProduct.currentPrice : 0,
-              },
-            ];
+      products.map(async (currentProduct) => {
+        // Scrape product
+        const scrapedProduct = await scrapeAmazonProduct(currentProduct.url);
+
+        if (!scrapedProduct) return;
+
+        const updatedPriceHistory = [
+          ...currentProduct.priceHistory,
+          {
+            price: scrapedProduct.currentPrice,
+          },
+        ];
 
         const product = {
           ...scrapedProduct,
